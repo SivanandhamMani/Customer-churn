@@ -322,7 +322,7 @@ class CustomerChurnAnalyzer:
         
         print("\n" + "="*60)
         print("ACTIONABLE RECOMMENDATIONS:")
-        print("="*60)
+       
         
         insights = {
             'tenure': "Focus retention efforts on newer customers (low tenure) who are at higher risk",
@@ -350,7 +350,7 @@ class CustomerChurnAnalyzer:
 def main():
    
     print("Customer Churn Prediction with SHAP Analysis")
-    print("=" * 50)
+    
     
   
     analyzer = CustomerChurnAnalyzer()
@@ -363,7 +363,7 @@ def main():
     try:
         test_score, auc_score = analyzer.train_model('xgboost')
     except:
-        print("XGBoost failed, trying LightGBM...")
+        print("XGBoost failed, trying LightGBM")
         test_score, auc_score = analyzer.train_model('lightgbm')
     
    
@@ -387,7 +387,7 @@ def main():
     
     print("\n" + "="*50)
     print("ANALYSIS COMPLETE")
-    print("="*50)
+    
     print("Generated files:")
     print("- shap_summary_plot.png: Global feature importance")
     print("- shap_bar_plot.png: Mean absolute SHAP values")
@@ -405,4 +405,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
