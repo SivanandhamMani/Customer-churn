@@ -1,9 +1,3 @@
-"""
-Interpretable Machine Learning: SHAP Analysis of Customer Churn Prediction
-Author: Data Scientist
-Date: 2025-11-24
-"""
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,7 +12,7 @@ import shap
 import warnings
 warnings.filterwarnings('ignore')
 
-# Set random seed for reproducibility
+
 np.random.seed(42)
 
 class CustomerChurnAnalyzer:
@@ -34,10 +28,8 @@ class CustomerChurnAnalyzer:
         self.shap_explainer = None
         
     def generate_synthetic_data(self, n_samples=10000):
-        """
-        Generate synthetic customer churn dataset similar to telecom/SaaS data
-        """
-        print("Generating synthetic customer churn data...")
+        
+        print("Generating synthetic customer churn data")
         
         np.random.seed(42)
         
@@ -68,7 +60,7 @@ class CustomerChurnAnalyzer:
         
         df = pd.DataFrame(data)
         
-        # Create realistic churn based on features
+        
         churn_prob = (
             (df['tenure'] < 12) * 0.3 +
             (df['contract_type'] == 'Month-to-month') * 0.2 +
@@ -81,41 +73,39 @@ class CustomerChurnAnalyzer:
         churn_prob = np.clip(churn_prob, 0, 1)
         df['churn'] = (churn_prob > 0.5).astype(int)
         
-        # Actual churn rate around 26-27%
+        
         print(f"Generated dataset with {df['churn'].sum()} churned customers ({df['churn'].mean():.2%})")
         
         return df
     
     def preprocess_data(self, df):
-        """
-        Preprocess the dataset for machine learning
-        """
+       
         print("Preprocessing data...")
         
-        # Copy dataframe to avoid modifying original
+       
         df_processed = df.copy()
         
-        # Drop customer_id as it's not a feature
+       
         df_processed = df_processed.drop('customer_id', axis=1)
         
-        # Separate features and target
+        
         X = df_processed.drop('churn', axis=1)
         y = df_processed['churn']
         
-        # Identify categorical and numerical columns
+        
         categorical_cols = X.select_dtypes(include=['object']).columns
         numerical_cols = X.select_dtypes(include=[np.number]).columns
         
-        # Encode categorical variables
+       
         for col in categorical_cols:
             le = LabelEncoder()
             X[col] = le.fit_transform(X[col])
             self.label_encoders[col] = le
         
-        # Scale numerical features
+       
         X[numerical_cols] = self.scaler.fit_transform(X[numerical_cols])
         
-        # Split the data
+       
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
         )
@@ -128,9 +118,7 @@ class CustomerChurnAnalyzer:
         return X, y
     
     def train_model(self, model_type='xgboost'):
-        """
-        Train the chosen classification model
-        """
+        
         print(f"Training {model_type} model...")
         
         if model_type == 'xgboost':
@@ -148,7 +136,7 @@ class CustomerChurnAnalyzer:
                 learning_rate=0.1,
                 random_state=42
             )
-        else:  # random forest as fallback
+        else:  
             self.model = RandomForestClassifier(
                 n_estimators=100,
                 max_depth=6,
@@ -157,7 +145,7 @@ class CustomerChurnAnalyzer:
         
         self.model.fit(self.X_train, self.y_train)
         
-        # Evaluate model
+    
         train_score = self.model.score(self.X_train, self.y_train)
         test_score = self.model.score(self.X_test, self.y_test)
         y_pred_proba = self.model.predict_proba(self.X_test)[:, 1]
@@ -167,7 +155,7 @@ class CustomerChurnAnalyzer:
         print(f"Test Accuracy: {test_score:.4f}")
         print(f"Test AUC: {auc_score:.4f}")
         
-        # Classification report
+       
         y_pred = self.model.predict(self.X_test)
         print("\nClassification Report:")
         print(classification_report(self.y_test, y_pred))
@@ -175,30 +163,26 @@ class CustomerChurnAnalyzer:
         return test_score, auc_score
     
     def compute_shap_values(self):
-        """
-        Compute SHAP values for model interpretation
-        """
-        print("Computing SHAP values...")
+      
+        print("Computing SHAP values")
         
-        # Initialize SHAP explainer
+       
         self.shap_explainer = shap.TreeExplainer(self.model)
         
-        # Calculate SHAP values for test set
+        
         shap_values = self.shap_explainer.shap_values(self.X_test)
         
-        # For binary classification, get SHAP values for class 1 (churn)
+       
         if isinstance(shap_values, list):
             shap_values = shap_values[1]
         
         return shap_values
     
     def global_interpretation(self, shap_values):
-        """
-        Global feature importance analysis using SHAP
-        """
-        print("\n=== GLOBAL INTERPRETATION ===")
+       
+        print("\n GLOBAL INTERPRETATION ")
         
-        # Create summary plot
+       
         plt.figure(figsize=(10, 8))
         shap.summary_plot(shap_values, self.X_test, feature_names=self.feature_names, show=False)
         plt.title("SHAP Summary Plot - Global Feature Importance", fontsize=16, fontweight='bold')
@@ -206,7 +190,7 @@ class CustomerChurnAnalyzer:
         plt.savefig('shap_summary_plot.png', dpi=300, bbox_inches='tight')
         plt.show()
         
-        # Bar plot for mean absolute SHAP values
+       
         plt.figure(figsize=(10, 6))
         shap.summary_plot(shap_values, self.X_test, feature_names=self.feature_names, plot_type="bar", show=False)
         plt.title("Mean |SHAP Value| - Feature Importance", fontsize=16, fontweight='bold')
@@ -214,7 +198,7 @@ class CustomerChurnAnalyzer:
         plt.savefig('shap_bar_plot.png', dpi=300, bbox_inches='tight')
         plt.show()
         
-        # Calculate and display mean absolute SHAP values
+      
         mean_abs_shap = np.abs(shap_values).mean(axis=0)
         feature_importance_df = pd.DataFrame({
             'feature': self.feature_names,
@@ -227,19 +211,17 @@ class CustomerChurnAnalyzer:
         return feature_importance_df
     
     def local_interpretation(self, shap_values, num_cases=5):
-        """
-        Local interpretation for individual predictions
-        """
-        print(f"\n=== LOCAL INTERPRETATION ({num_cases} CASES) ===")
         
-        # Get predicted probabilities
+        print(f"\n LOCAL INTERPRETATION ({num_cases} CASES) ")
+        
+       
         y_pred_proba = self.model.predict_proba(self.X_test)[:, 1]
         
-        # Find high-risk and low-risk customers
-        high_risk_indices = np.argsort(y_pred_proba)[-num_cases:]  # Highest churn probability
-        low_risk_indices = np.argsort(y_pred_proba)[:num_cases]    # Lowest churn probability
+       
+        high_risk_indices = np.argsort(y_pred_proba)[-num_cases:]  
+        low_risk_indices = np.argsort(y_pred_proba)[:num_cases]    
         
-        print("\n--- HIGH-RISK CUSTOMERS (Likely to Churn) ---")
+        print("\nHIGH-RISK CUSTOMERS (Likely to Churn)")
         for i, idx in enumerate(high_risk_indices):
             actual_churn = self.y_test.iloc[idx]
             pred_prob = y_pred_proba[idx]
@@ -248,7 +230,7 @@ class CustomerChurnAnalyzer:
             print(f"  Actual Churn: {actual_churn}")
             print(f"  Predicted Churn Probability: {pred_prob:.4f}")
             
-            # Force plot for individual prediction
+            
             plt.figure(figsize=(10, 3))
             shap.force_plot(
                 self.shap_explainer.expected_value[1] if hasattr(self.shap_explainer.expected_value, '__len__') else self.shap_explainer.expected_value,
@@ -263,7 +245,7 @@ class CustomerChurnAnalyzer:
             plt.savefig(f'high_risk_customer_{i+1}_force_plot.png', dpi=300, bbox_inches='tight')
             plt.show()
             
-            # Waterfall plot
+           
             plt.figure(figsize=(10, 6))
             shap.waterfall_plot(
                 shap.Explanation(
@@ -279,7 +261,7 @@ class CustomerChurnAnalyzer:
             plt.savefig(f'high_risk_customer_{i+1}_waterfall.png', dpi=300, bbox_inches='tight')
             plt.show()
         
-        print("\n--- LOW-RISK CUSTOMERS (Unlikely to Churn) ---")
+        print("\nLOW-RISK CUSTOMERS (Unlikely to Churn) ")
         for i, idx in enumerate(low_risk_indices):
             actual_churn = self.y_test.iloc[idx]
             pred_prob = y_pred_proba[idx]
@@ -288,7 +270,7 @@ class CustomerChurnAnalyzer:
             print(f"  Actual Churn: {actual_churn}")
             print(f"  Predicted Churn Probability: {pred_prob:.4f}")
             
-            # Force plot for individual prediction
+           
             plt.figure(figsize=(10, 3))
             shap.force_plot(
                 self.shap_explainer.expected_value[1] if hasattr(self.shap_explainer.expected_value, '__len__') else self.shap_explainer.expected_value,
@@ -304,12 +286,10 @@ class CustomerChurnAnalyzer:
             plt.show()
     
     def dependency_analysis(self, shap_values, top_features=3):
-        """
-        Analyze feature dependencies using SHAP dependence plots
-        """
-        print(f"\n=== FEATURE DEPENDENCY ANALYSIS ===")
+       
+        print(f"\nFEATURE DEPENDENCY ANALYSIS")
         
-        # Get top features by importance
+       
         mean_abs_shap = np.abs(shap_values).mean(axis=0)
         top_indices = np.argsort(mean_abs_shap)[-top_features:][::-1]
         
@@ -331,9 +311,7 @@ class CustomerChurnAnalyzer:
             plt.show()
     
     def generate_business_insights(self, feature_importance_df):
-        """
-        Generate actionable business insights from SHAP analysis
-        """
+       
         print("\n=== BUSINESS INSIGHTS & RECOMMENDATIONS ===")
         
         top_features = feature_importance_df.head(5)['feature'].tolist()
@@ -370,43 +348,41 @@ class CustomerChurnAnalyzer:
         print("5. Regularly monitor model performance and feature importance shifts")
 
 def main():
-    """
-    Main execution function
-    """
+   
     print("Customer Churn Prediction with SHAP Analysis")
     print("=" * 50)
     
-    # Initialize analyzer
+  
     analyzer = CustomerChurnAnalyzer()
     
-    # Generate and preprocess data
+   
     df = analyzer.generate_synthetic_data(n_samples=10000)
     X, y = analyzer.preprocess_data(df)
     
-    # Train model (try XGBoost first, fallback to LightGBM if needed)
+    
     try:
         test_score, auc_score = analyzer.train_model('xgboost')
     except:
         print("XGBoost failed, trying LightGBM...")
         test_score, auc_score = analyzer.train_model('lightgbm')
     
-    # Check if model meets minimum performance threshold
+   
     if auc_score < 0.75:
         print("Warning: Model performance may be insufficient for reliable interpretation")
     
-    # Compute SHAP values
+    
     shap_values = analyzer.compute_shap_values()
     
-    # Global interpretation
+  
     feature_importance_df = analyzer.global_interpretation(shap_values)
     
-    # Local interpretation
+   
     analyzer.local_interpretation(shap_values, num_cases=3)
     
-    # Dependency analysis
+   
     analyzer.dependency_analysis(shap_values, top_features=3)
     
-    # Business insights
+   
     analyzer.generate_business_insights(feature_importance_df)
     
     print("\n" + "="*50)
@@ -419,7 +395,7 @@ def main():
     print("- low_risk_customer_*_force_plot.png: Individual explanations for low-risk customers")
     print("- dependence_plot_*.png: Feature dependency plots")
     
-    # Save feature importance to CSV
+   
     feature_importance_df.to_csv('feature_importance.csv', index=False)
     print("- feature_importance.csv: Feature importance rankings")
     
@@ -429,3 +405,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
